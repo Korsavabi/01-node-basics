@@ -1,26 +1,29 @@
-let a = 10;
-console.log('a ', a);
+// index.js
+const {listContacts, getContactById, removeContact, addContact} = require('./contacts.js');
+const argv = require('yargs').argv;
 
-// contacts.js
+// TODO: рефакторить
+function invokeAction({ action, id, name, email, phone }) {
+  switch (action) {
+    case 'list':
+      listContacts()
+      break;
 
-/*
- * Раскомментируй и запиши значение
- * const contactsPath = ;
- */
+    case 'get':
+      getContactById(id)
+      break;
 
-// TODO: задокументировать каждую функцию
-// function listContacts() {
-//     // ...твой код
-//   }
-  
-//   function getContactById(contactId) {
-//     // ...твой код
-//   }
-  
-//   function removeContact(contactId) {
-//     // ...твой код
-//   }
-  
-//   function addContact(name, email, phone) {
-//     // ...твой код
-//   }
+    case 'add':
+      addContact(name, email, phone)
+      break;
+
+    case 'remove':
+      removeContact(id)
+      break;
+
+    default:
+      console.warn('\x1B[31m Unknown action type!');
+  }
+}
+
+invokeAction(argv);
