@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path  from'path';
 const newId = Date.now();
 const contactsPath  = path.format({
   root: './db/',
@@ -10,8 +10,10 @@ const contactsPath  = path.format({
 function listContacts() {
     fs.readFile(contactsPath, 'utf-8', (err, data) => {
       console.table(JSON.parse(data));
+      // console.log(JSON.parse(data));
   });
   }
+
 
   function getContactById(contactId) {
     fs.readFile(contactsPath, 'utf-8', (err, data) =>{
@@ -53,4 +55,4 @@ function listContacts() {
         });
   }
 
-  module.exports = {listContacts,getContactById,removeContact,addContact};
+  export {listContacts, getContactById, removeContact, addContact};
