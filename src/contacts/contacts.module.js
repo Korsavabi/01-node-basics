@@ -18,6 +18,7 @@ const contactsPath  = path.format({
       fs.readFile(contactsPath, 'utf8', (err, data) => {
           const contact = JSON.parse(data);
           contact.filter(el=> el.id === Number(contactId));
+        console.table(contact.filter(el=> el.id === Number(contactId)));
           
       })
   }
@@ -51,23 +52,22 @@ const contactsPath  = path.format({
         console.log('Lol', listContacts());
     })
 }
-  const updateContact = (id, reqBody) => {
-fs.readFile(contactsPath, 'utf-8', (err, data)=>{
-  const targetContact = JSON.parse(data);
-  targetContact.findIndex((contact)=>{
-    contact.id === Number(id)
-  });
-  if(targetContact === -1){
-    return false;
+ const updateContact = async (contactId, reqBody) => {
+const responce = await fs.promises.readFile(contactsPath, 'utf-8')
+  const targetContact = JSON.parse(responce);
+  const userIndex = targetContact.findIndex((contact)=>{
+    contact.id === Number(contactId)  });
+
+  if(userIndex === -1){
+    return null;
   }
-  (contactsPath[targetContact]={
-    ...contactsPath[targetContact],
+  targetContact[userIndex] = {
+    ...targetContact[userIndex],
     ...reqBody
-  })
-fs.writeFile(contactsPath, JSON.stringify(contactsPath), (err) => {
-  if(err) throw err;
-})
-return contactsPath[targetContact];
-})
+  };
+  await fs.promises.writeFile(contactsPath, JSON.stringify(targetContact))
+  
+  console.table('targetContact[userIndex] - ' ,targetContact[userIndex]);
+  return targetContact[userIndex];
 }
   export default {listContacts, getContactById, removeContact, addContact, updateContact};
