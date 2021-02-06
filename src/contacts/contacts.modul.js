@@ -11,4 +11,4 @@ const contactSchema = new Schema({
   token: {type: String, required: false, default: ''},
 })
 
-export const contactModel = mongoose.model('contact', contactSchema);
+export const contactModel = mongoose.model('Contact', contactSchema);
