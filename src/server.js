@@ -1,10 +1,12 @@
 import express from "express";
-import { getPaths } from "./helpers/utils.js";
-import dotenv  from 'dotenv';
-import morgan from 'morgan';
-import path from 'path';
-import { userRouter } from './contacts/contact.router.js';
 import cors from 'cors';
+import morgan from 'morgan';
+import dotenv  from 'dotenv';
+dotenv.config();
+import mongoose from 'mongoose';
+import { getPaths } from "./helpers/utils.js";
+import path from 'path';
+import contactRouter from './contacts/contacts.router.js';
 
 export class ContactsServer{
 
@@ -12,43 +14,59 @@ export class ContactsServer{
         this.server = null;
     }
 
-    start() {
+    async start() {
         this.initServer();
         this.initConfig();
+        await this.initDatabase();
         this.initMiddlewares();
         this.initRoutes();
-        this.initErrorHandling();
+        this.initErrorHandler();
         this.startListening();
       }
 
-    initServer(){
+      initServer() {
         this.server = express();
-    }
-    initConfig() {
+      }
+    
+      initConfig() {
         const { __dirname } = getPaths(import.meta.url);
-        dotenv.config({ path: path.join(__dirname, "../.env") });
-    }
+        dotenv.config({ path: path.join(__dirname, ".env") });
+      }
+      async initDatabase() {
+        try {
+          await mongoose.connect(process.env.MONGODB_URL, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            useFindAndModify: false,
+          });
+    
+          console.log("Database connection successful");
+        } catch (error) {
+          console.log(`MongoDB error: ${error.message}`);
+          process.exit(1);
+        }
+      }
+      
     initMiddlewares(){
         this.server.use(express.json());
         this.server.use(morgan('combined'));
-        this.server.use(cors({ origin: 'http://localhost:3000' }));
+        this.server.use(cors({ origin: `http://localhost:3000` }));
     }
     initRoutes(){
-        this.server.use('/api/contacts', userRouter)
+        this.server.use('/api/contacts', contactRouter);
     }
-    initErrorHandling(){
+    initErrorHandler() {
         this.server.use((err, req, res, next) => {
-            const statusCode = err.status || 500;
-            res.status(statusCode).send(err.message);
-          });
-    }
+          const statusCode = err.status || 500;
+          res.status(statusCode).send(err.message);
+        });
+      }
     startListening(){
         // const { PORT } = process.env;
         const PORT = 3000;
-        
 
         this.server.listen(PORT, () => {
-          console.log("Server started listening on port", PORT);
-        });
+            console.log("Server started listening on port", PORT);
+          });
     }
 }
