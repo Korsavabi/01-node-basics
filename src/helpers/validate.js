@@ -1,9 +1,13 @@
-import Joi from 'joi';
+export function validate(schema, reqPart = "body") {
+  
+  return (req, res, next) => {
 
-export const contactValidation = Joi.object({
-  name: Joi.string().min(3).max(30).required(),
+    const validateResult = schema.validate(req[reqPart]);
 
-  email: Joi.string().email().required(),
+    if(validateResult.error){
+      return res.status(400).send(validateResult.error);
+    }
 
-  phone: Joi.string().required(),
-})
+    next();
+  }
+}

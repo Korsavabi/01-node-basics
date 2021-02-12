@@ -3,8 +3,11 @@ import { getPaths } from "./helpers/utils.js";
 import dotenv  from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
-import { userRouter } from './contacts/contact.router.js';
+import { userRouter } from './users/users.controller.js';
+import { authRouter } from './auth/auth.controller.js';
 import cors from 'cors';
+import mongoose  from "mongoose";
+import cookieParser from "cookie-parser";
 
 export class ContactsServer{
 
@@ -12,9 +15,10 @@ export class ContactsServer{
         this.server = null;
     }
 
-    start() {
+   async start() {
         this.initServer();
         this.initConfig();
+        await this.initDatabase();
         this.initMiddlewares();
         this.initRoutes();
         this.initErrorHandling();
@@ -28,13 +32,23 @@ export class ContactsServer{
         const { __dirname } = getPaths(import.meta.url);
         dotenv.config({ path: path.join(__dirname, "../.env") });
     }
+   async initDatabase(){
+    await mongoose.connect(process.env.MONGODB_URL, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        useCreateIndex: true,
+        useFindAndModify: false
+    });
+    }
     initMiddlewares(){
         this.server.use(express.json());
         this.server.use(morgan('combined'));
         this.server.use(cors({ origin: 'http://localhost:3000' }));
+        this.server.use(cookieParser(process.env.COOKIE_SECRET))
     }
     initRoutes(){
-        this.server.use('/api/contacts', userRouter)
+        this.server.use('/auth', authRouter);
+        this.server.use('/users', userRouter);
     }
     initErrorHandling(){
         this.server.use((err, req, res, next) => {
@@ -43,9 +57,7 @@ export class ContactsServer{
           });
     }
     startListening(){
-        // const { PORT } = process.env;
-        const PORT = 3000;
-        
+        const { PORT } = process.env;        
 
         this.server.listen(PORT, () => {
           console.log("Server started listening on port", PORT);
