@@ -4,10 +4,12 @@ import dotenv  from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
 import { userRouter } from './users/users.controller.js';
-import { authRouter } from './auth/auth.controller.js';
+import { authRouter } from './auth/auth.router.js';
+import contactRouter from './contacts/contacts.router.js';
 import cors from 'cors';
 import mongoose  from "mongoose";
 import cookieParser from "cookie-parser";
+// import { imagesRouter } from "./multerImages/image_compression_server.js";
 
 export class ContactsServer{
 
@@ -33,12 +35,18 @@ export class ContactsServer{
         dotenv.config({ path: path.join(__dirname, "../.env") });
     }
    async initDatabase(){
-    await mongoose.connect(process.env.MONGODB_URL, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        useCreateIndex: true,
-        useFindAndModify: false
-    });
+    try{
+        await mongoose.connect(process.env.MONGODB_URL, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            useCreateIndex: true,
+            useFindAndModify: false
+        });
+        console.log("Database connection successful");
+    }catch(error){
+        console.log(`MongoDB error: ${error.message}`);
+        process.exit(1);
+    }
     }
     initMiddlewares(){
         this.server.use(express.json());
@@ -47,8 +55,11 @@ export class ContactsServer{
         this.server.use(cookieParser(process.env.COOKIE_SECRET))
     }
     initRoutes(){
+        this.server.use('/api/contacts', contactRouter);
         this.server.use('/auth', authRouter);
         this.server.use('/users', userRouter);
+        // this.server.use('/', imagesRouter);
+       
     }
     initErrorHandling(){
         this.server.use((err, req, res, next) => {
@@ -58,7 +69,7 @@ export class ContactsServer{
     }
     startListening(){
         const { PORT } = process.env;        
-
+        // console.log("imagesRouter", imagesRouter);
         this.server.listen(PORT, () => {
           console.log("Server started listening on port", PORT);
         });

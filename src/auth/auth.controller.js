@@ -1,47 +1,106 @@
-import { Router } from 'express';
-import { asyncWrapper } from '../helpers/async-wrapper.js';
-import { authService, logOut } from './auth.service.js';
-import { composeUsers } from '../users/users.serialize.js';
-import { authorize } from '../helpers/authorize.js'
-import { validate } from '../helpers/validate.js';
-import Joi from 'joi';
+import { Conflict, NotFound, Forbidden } from '../helpers/error.constructors.js';
+import { userModel } from '../users/user.model.js';
+import bcryptjs from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { createAvatar } from '../helpers/avatar-generator.js';
 
-const router = Router();
+class AuthService {
+    async signIn(credentials){
+        const { email, password } = credentials;
+        const user = await userModel.findOne({ email });
 
-const signUpSchema = Joi.object({
-    username: Joi.string().required(),
-    email: Joi.string().required(),
-    password: Joi.string().min(6).required(),
-});
+        if(!user){
+            throw new NotFound(`User with email ${email} was not found`);
+        }
 
-router.post(
-    '/register',
-    validate(signUpSchema),
-    asyncWrapper(async (req, res) => {
-        const newUser = await authService.signUp(req.body);
-        res.status(201).send(composeUsers(newUser));
-    })
-);
+        const isRightPassword = await bcryptjs.compare(password, user.passwordHash);
 
-const signInSchema = Joi.object({
-    email: Joi.string().email().required(),
-    password: Joi.string().min(6).required(),
-});
+        if(!isRightPassword){
+            throw new Forbidden(`Provided password is wrong`);
+        }
 
-router.post(
-    '/login',
-    validate(signInSchema),
-    asyncWrapper(async (req, res) => {
-        const {user , token} = await authService.signIn(req.body);
+        const { JWT_SECRET, JWT_EXPIRES_IN } = process.env;
+        const token = jwt.sign({uid: user._id}, JWT_SECRET, {
+            expiresIn: JWT_EXPIRES_IN,
+        });
 
-        res.cookie('token', token, { httpOnly: true, signed: true});
+        return { user, token};
+
+    }
+    
+}
+
+export const authService = new AuthService();
+
+export async function signUp(req, res, next){    
+    try{
+        const { email, username, password } = req.body;
+        const existingUser = await userModel.findOne({ email });
+
+        if(existingUser){
+            return res.status(409).json({ message: "Email in use" });
+        }
+
+        const saltRounds = parseInt(process.env.SALT_ROUNDS);
+        const passwordHash = await bcryptjs.hash(password, Number(saltRounds));
+
+        const newUser = await userModel.create({
+            email,
+            username,
+            password: passwordHash,
+            avatarURL: await createAvatar(next),
+        });
+
+        return res.status(201).json({
+            user:{
+                email: newUser.email,
+                subscription: newUser.subscription,
+                avatarURL: newUser.avatarURL,
+            }
+        });
+     }catch(error){
+         next(error)
+     }
+ }
+ export async function signIn(req, res, next) {
+     try{
+        const { email, password } = req.body;
+                const user = await userModel.findOne({ email });
+        
+                if(!user){
+                    throw new NotFound(`User with email ${email} was not found`);
+                }
+        
+                const isRightPassword = await bcryptjs.compare(password, user.passwordHash);
+        
+                if(!isRightPassword){
+                    throw new Forbidden(`Provided password is wrong`);
+                }
+        
+                const { JWT_SECRET, JWT_EXPIRES_IN } = process.env;
+                const token = jwt.sign({uid: user._id}, JWT_SECRET, {
+                    expiresIn: JWT_EXPIRES_IN,
+                });
+        
+                res.cookie('token', token, { httpOnly: true, signed: true});
         return res.status(201).send({
             // token,
             user: composeUsers(user),
         });
-    })
-);
-
-router.post( '/logout', authorize, logOut );
-
-export const authRouter = router;
+     }catch(error){
+         return res.status(401).json({ message: "Not authorized" });
+     }
+ }
+export async function logOut(req, res, next){    
+    try{
+        await userModel.findByIdAndUpdate(
+            req.userId,
+            res.clearCookie('token', {path: "/"}),
+             { new: true }
+     
+         );
+         return res.status(204).json()
+     }catch(error){
+         return res.status(401).json({ message: 'Not authorized' });
+     }
+ }
