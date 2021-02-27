@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { validate } from '../helpers/validate.js';
-import { signUp, authService, logOut } from './auth.controller.js';
+import { signUp, authService, logOut, verifyUser } from './auth.controller.js';
 import Joi from 'joi';
 import { asyncWrapper } from "../helpers/async-wrapper.js";
 import { authorize } from '../helpers/authorize.js';
@@ -36,5 +36,7 @@ router.post(
 );
 
 router.post( '/logout', authorize, logOut );
+
+router.get('/verify/:verificationToken', verifyUser)
 
 export const authRouter = router;

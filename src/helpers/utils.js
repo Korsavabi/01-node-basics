@@ -7,3 +7,4 @@ export function getPaths(fileUrl) {
 
   return { __filename, __dirname };
 }
+

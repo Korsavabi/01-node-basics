@@ -3,13 +3,12 @@ import { getPaths } from "./helpers/utils.js";
 import dotenv  from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
-import { userRouter } from './users/users.controller.js';
+import { userRouter } from './users/users.router.js';
 import { authRouter } from './auth/auth.router.js';
 import contactRouter from './contacts/contacts.router.js';
 import cors from 'cors';
 import mongoose  from "mongoose";
 import cookieParser from "cookie-parser";
-// import { imagesRouter } from "./multerImages/image_compression_server.js";
 
 export class ContactsServer{
 
@@ -57,9 +56,7 @@ export class ContactsServer{
     initRoutes(){
         this.server.use('/api/contacts', contactRouter);
         this.server.use('/auth', authRouter);
-        this.server.use('/users', userRouter);
-        // this.server.use('/', imagesRouter);
-       
+        this.server.use('/users', userRouter);       
     }
     initErrorHandling(){
         this.server.use((err, req, res, next) => {
